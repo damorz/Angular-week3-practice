@@ -1,2 +1,2 @@
 # Angular-practice-2
-practice angular that learn from coursera.
+practice angular that learn from coursera week2.
