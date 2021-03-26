@@ -1,0 +1,14 @@
+<div ng-if="list.items.length !== 0;">
+  <ol>
+    <h4>list of item :</h4>
+    <li ng-repeat="item in list.items">
+      ({{ item.short_name }}), {{ item.description }}
+      <button class="btn btn-danger" ng-click="list.onRemove({index: $index});">
+        Don't want this one!
+      </button>
+    </li>
+  </ol>
+</div>
+<div ng-if="list.items.length === 0;">
+  <h4>No item found</h4>
+</div>

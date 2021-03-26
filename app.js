@@ -1,70 +1,74 @@
 (function () {
   "use strict";
   angular
-    .module("ShoppingListCheckOff", [])
-    .controller("ToBuyController", ToBuyController)
-    .controller("AlreadyBoughtController", AlreadyBoughtController)
-    .service("ShoppingListCheckOffService", ShoppingListCheckOffService);
+    .module("NarrowItDownApp", [])
+    .controller("NarrowItDownController", NarrowItDownController)
+    .service("MenuSearchService", MenuSearchService)
+    .directive('foundItems', FoundItemsDirective);
 
-  ToBuyController.$inject = ["ShoppingListCheckOffService"];
-  function ToBuyController(ShoppingListCheckOffService) {
-    var toBuy = this;
-    toBuy.hasItem =  function () {
-      if(toBuy.items.length === 0) { 
-        return false;
-      }
-      return true;
-    }
-    toBuy.items = ShoppingListCheckOffService.getToBuyItems();
-    toBuy.buyItem = function (itemName, itemQuantity, itemIndex) {
-      ShoppingListCheckOffService.buyItem(itemName, itemQuantity, itemIndex);
-    }
+  function FoundItemsDirective() {
+    var ddo = {
+      templateUrl: "/loader/itemsloaderindicator.template.html",
+      scope: {
+        items: "<",
+        onRemove: '&'
+      },
+      controller: FoundItemsDirectiveController,
+      controllerAs: 'list',
+      bindToController: true,
+    };
+
+    return ddo;
   }
 
-  AlreadyBoughtController.$inject = ["ShoppingListCheckOffService"];
-  function AlreadyBoughtController(ShoppingListCheckOffService) {
-    var bought = this;
-    bought.hasItem =  function () {
-      if(bought.items.length === 0) { 
-        return false;
-      }
-      return true;
-    }
-    bought.items = ShoppingListCheckOffService.getBoughtItems();
+  function FoundItemsDirectiveController() {
+    var list = this;
   }
 
-  function ShoppingListCheckOffService() {
+  NarrowItDownController.$inject = ["MenuSearchService"];
+  function NarrowItDownController(MenuSearchService) {
+    var narrow = this;
+    narrow.found = [];
+    narrow.searchTerm = "";
+    narrow.foundItems = function () {
+      MenuSearchService.getMatchedMenuItems(narrow.searchTerm);
+      narrow.found = MenuSearchService.getFound();
+    }
+    narrow.removeItem = function (itemIndex) {
+      MenuSearchService.removeItem(itemIndex);
+    };
+  }
+
+  MenuSearchService.$inject = ["$http"];
+  function MenuSearchService($http) {
     var service = this;
-
-    //item
-    var toBuy = [
-      {name: "cookies", quantity: 10},
-      {name: "water", quantity: 5},
-      {name: "breads", quantity: 7},
-      {name: "snacks", quantity: 18},
-      {name: "juice", quantity: 2}
-    ];
-    var bought = [];
-
-    service.getToBuyItems = function () {
-      return toBuy;
+    service.foundItems = [];
+    
+    service.getFound = function() {
+      return service.foundItems;
+    }
+    service.getMatchedMenuItems = function (searchTerm) {
+      service.foundItems = [];
+      return $http({
+        method: "GET",
+        url: "https://davids-restaurant.herokuapp.com/menu_items.json",
+      }).then(function (result) {
+        // process result and only keep items that match
+        var allData = result.data.menu_items;
+        for (var i = 0; i < allData.length; i++) {
+          var description = allData[i].description;
+          if (
+            description.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1
+          ) {
+            service.foundItems.push(allData[i]);
+          }
+        }
+      });
     };
 
-    service.getBoughtItems = function () {
-      return bought;
+    service.removeItem = function (itemIndex) {
+      service.foundItems.splice(itemIndex, 1);
     };
-
-    service.buyItem = function (itemName, itemQuantity, itemIndex) {
-      var item = {
-        name: itemName,
-        quantity: itemQuantity,
-      };
-      try {
-        toBuy.splice(itemIndex, 1); //remove in to buy
-        bought.push(item); // add to bought
-      } catch (error) {
-        console.log("Cannot buy this item. Something wrong.", error);
-      }
-    };
+    
   }
 })();
